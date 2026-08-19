@@ -1,0 +1,100 @@
+[project]
+name = "contoso-data-product-databricks-airflow3"
+version = "0.1.0"
+description = "The Contoso data product for Databricks under Apache Airflow 3: vendor ingest, Delta bronze/silver, dbt gold, ODCS contracts."
+requires-python = ">=3.12"
+authors = [{name = "Calvin Cheng", email = "calvin@calvinx.com"}]
+
+# WHAT THE WORKER MUST IMPORT. The platform installs exactly this with
+# `uv pip install -r pyproject.toml`; there is no requirements.txt anywhere.
+#
+# THESE ARE THE JOBS LEAF'S DEPENDENCIES PLUS COSMOS, at the same pins and
+# split the same way. Both cells drive the same engine; if this one resolved a
+# different databricks-sdk or dbt-databricks, a difference in their gold could
+# be the orchestrator or could be the client library, and nobody could say
+# which -- which would cost this cell the one thing it exists to establish.
+#
+# THE ENGINE AND dbt CANNOT SHARE AN ENVIRONMENT. dbt-databricks 1.12.4 pins
+# databricks-sdk<0.118 and databricks-connect 19.1 needs 0.129; uv proves the
+# two unsatisfiable together. The Jobs cell sidesteps this by running each step
+# in its own environment, so the two never meet. An Airflow WORKER is a single
+# environment, so that answer is not available here and pretending otherwise
+# would mean silently dropping the engine to whatever dbt allows -- a change to
+# the client library, made invisibly, in the one cell built to isolate the
+# orchestrator as a variable.
+#
+# So the split is kept and declared: the worker installs `engine`, and the gold
+# tasks run dbt in their OWN virtualenv (cosmos ExecutionMode.VIRTUALENV) built
+# from the `dbt` group. Two environments either way; here the boundary is a
+# task boundary rather than a job boundary.
+#
+# Airflow itself is NOT here -- the platform's worker image provides it, and a
+# product that pinned its own orchestrator would stop being deployable to a
+# managed Airflow.
+dependencies = [
+    # THE PRODUCT, BY RELEASE. Bronze and silver runners and every line of gold
+    # SQL come from here and are not restated: two copies of `fct_sales.sql`
+    # agree until the day one of them is fixed.
+    "contoso-data-product",
+    # THE EMULATOR-OR-REAL CONTRACT, published by databricks-emulator's release
+    # and pinned by the PLATFORM's versions.env.
+    "databricks-target",
+    "requests>=2.32,<3",
+    "pyarrow>=18,<24",
+    # The ERP vendor's change stream. Reading the ERP table directly would be a
+    # snapshot and not a change stream at all.
+    "confluent-kafka>=2.5,<3",
+    "psycopg[binary]>=3.2,<4",
+    # Renders the gold project as one Airflow task per model, with dbt's own
+    # graph as the dependencies -- which is what puts each contract in the UI as
+    # its own task rather than a verdict read back out of run_results.json.
+    "astronomer-cosmos>=1.15,<2",
+]
+
+[dependency-groups]
+engine = [
+    "databricks-sdk==0.129.0",
+    "databricks-connect==19.1",
+]
+# dbt-databricks 1.12.4 pins databricks-sdk<0.118. Do not include-group engine.
+dbt = [
+    "dbt-core>=1.9,<2",
+    "dbt-databricks==1.12.4",
+]
+dev = ["pytest>=9.0.3,<10", "ruff>=0.14,<0.15"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/contoso_dbx_airflow"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.uv]
+# DECLARED, not discovered at install time. uv refuses to resolve these two
+# groups together, and saying so here makes the refusal a statement about the
+# product rather than an error someone hits.
+conflicts = [
+    [
+        { group = "engine" },
+        { group = "dbt" },
+    ],
+]
+# FORCE THE PATCHED sqlparse PAST dbt-core's PIN -- the same override the Fabric
+# Airflow leaf carries, for the same reason: four advisories land on
+# sqlparse <= 0.5.5, fixed only in 0.6.0, which dbt-core forbids. Without it uv
+# proves the requirements unsatisfiable. Remove it the moment dbt-core allows
+# 0.6.0 itself; an override that outlives its reason silently pins a dependency
+# nobody is watching.
+override-dependencies = ["sqlparse>=0.6.0"]
+
+[tool.uv.sources]
+# Both by release, matching what the Jobs leaf resolves. Not by sibling path:
+# the worker image receives this product's directory and nothing else, so
+# `../contoso-data-product` is `Distribution not found` at build time.
+contoso-data-product = { url = "https://github.com/calvinchengx/contoso-data-product/releases/download/v0.2.0/contoso_data_product-0.2.0-py3-none-any.whl" }
+databricks-target = { url = "https://github.com/calvinchengx/databricks-emulator/releases/download/v0.2.5/databricks_target-0.1.0-py3-none-any.whl" }

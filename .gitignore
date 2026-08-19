@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+# GENERATED, by `make manifest`. Not committed: it describes a PINNED release of
+# contoso-data-product, and a committed copy is a second place that pin lives --
+# stale the moment the pin moves, and stale in the way that still renders.
+dbt/gold/target/
+logs/
+data/
+product_snapshot.json

@@ -1,0 +1,34 @@
+name: ci
+
+# WHAT THIS CATCHES that a green lockfile does not: the DAG has to IMPORT, and
+# importing it renders the gold graph from a manifest that this job builds from
+# the pinned product. A change to the product's models, or to the pins, or to
+# cosmos's render mode shows up here as an import error or a missing contract --
+# not on the day someone brings a stack up.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install 3.12
+
+      # BEFORE ANYTHING ELSE. scripts/manifest.py fails if the manifest it built
+      # is missing any contract that exists as a file, so this step is itself
+      # the check that the contracts survive rendering.
+      - name: build the dbt manifest
+        run: make manifest
+
+      - name: lint
+        run: make lint
+
+      - name: test
+        run: make test

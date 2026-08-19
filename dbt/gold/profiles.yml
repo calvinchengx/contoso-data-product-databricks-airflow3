@@ -1,0 +1,41 @@
+# Gold materialises into the UC catalog, over the warehouse's SQL endpoint.
+#
+# THE MODELS ARE NOT HERE. `contoso-data-product` ships the gold project and
+# exists precisely so gold is not copied: two `fct_sales.sql` files agree until
+# the day someone fixes a bug in one of them. This leaf supplies the PROFILE and
+# points cosmos at `gold_dir()`. The Jobs leaf still copies the project into a
+# work directory before running it; that is its business, and the copy is a
+# staging step rather than a second definition -- but not copying at all is
+# better, and cosmos makes it possible here.
+#
+# EVERY env_var HAS A DEFAULT, and that is a cosmos requirement rather than
+# laziness. Cosmos renders the DAG at PARSE time by running `dbt ls`, which
+# parses the project and therefore resolves this profile -- but the workspace
+# token is minted per RUN, and the http_path names a warehouse id that does not
+# exist until `provision` has run. Without defaults the dag-processor fails with
+# `Env var required but not provided` and the DAG never appears at all.
+#
+# `dbt ls` does not CONNECT, so placeholders are sufficient for it. The real
+# values arrive at execution through the task environment, which is where a
+# credential belongs -- baking one into a rendered DAG would put it in the
+# metadata database.
+contoso_gold:
+  target: dev
+  outputs:
+    dev:
+      type: databricks
+      # Unroutable on purpose. If this is ever read at RUN time rather than
+      # render time, failing to connect is the correct outcome -- a placeholder
+      # that happened to resolve to something real would be far worse.
+      host: "{{ env_var('DATABRICKS_HOST', 'render-time-placeholder.invalid') }}"
+      http_path: "{{ env_var('DATABRICKS_HTTP_PATH', '/sql/1.0/endpoints/render-time') }}"
+      token: "{{ env_var('DATABRICKS_TOKEN', 'render-time-placeholder') }}"
+      catalog: "{{ env_var('DATABRICKS_CATALOG', 'contoso') }}"
+      schema: gold
+      threads: 1
+      connect_retries: 1
+      connect_timeout: 20
+      connection_parameters:
+        _connection_uri: "{{ env_var('DATABRICKS_CONNECTION_URI', 'http://render-time-placeholder.invalid') }}"
+        use_cloud_fetch: false
+        enable_telemetry: false
