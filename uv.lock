@@ -694,10 +694,10 @@ wheels = [
 
 [[package]]
 name = "contoso-data-product"
-version = "0.2.0"
-source = { url = "https://github.com/calvinchengx/contoso-data-product/releases/download/v0.2.0/contoso_data_product-0.2.0-py3-none-any.whl" }
+version = "0.3.0"
+source = { url = "https://github.com/calvinchengx/contoso-data-product/releases/download/v0.3.0/contoso_data_product-0.3.0-py3-none-any.whl" }
 wheels = [
-    { url = "https://github.com/calvinchengx/contoso-data-product/releases/download/v0.2.0/contoso_data_product-0.2.0-py3-none-any.whl", hash = "sha256:9c68512a8b7784944b34da68630fdd2e68dc84b7c977a8abd130e05a6ad7acfe" },
+    { url = "https://github.com/calvinchengx/contoso-data-product/releases/download/v0.3.0/contoso_data_product-0.3.0-py3-none-any.whl", hash = "sha256:ff3b0881df14053b0be63689c61dd7c14d36425dc576744368bf2bf7a76fccc3" },
 ]
 
 [package.metadata]
@@ -736,7 +736,7 @@ engine = [
 requires-dist = [
     { name = "astronomer-cosmos", specifier = ">=1.15,<2" },
     { name = "confluent-kafka", specifier = ">=2.5,<3" },
-    { name = "contoso-data-product", url = "https://github.com/calvinchengx/contoso-data-product/releases/download/v0.2.0/contoso_data_product-0.2.0-py3-none-any.whl" },
+    { name = "contoso-data-product", url = "https://github.com/calvinchengx/contoso-data-product/releases/download/v0.3.0/contoso_data_product-0.3.0-py3-none-any.whl" },
     { name = "databricks-target", url = "https://github.com/calvinchengx/databricks-emulator/releases/download/v0.2.5/databricks_target-0.1.0-py3-none-any.whl" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2,<4" },
     { name = "pyarrow", specifier = ">=18,<24" },
@@ -1250,8 +1250,8 @@ name = "google-auth"
 version = "2.56.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cryptography", marker = "extra == 'group-40-contoso-data-product-databricks-airflow3-dbt' or extra == 'group-40-contoso-data-product-databricks-airflow3-engine'" },
-    { name = "pyasn1-modules", marker = "extra == 'group-40-contoso-data-product-databricks-airflow3-dbt' or extra == 'group-40-contoso-data-product-databricks-airflow3-engine'" },
+    { name = "cryptography" },
+    { name = "pyasn1-modules" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/db/4c/fa42116a48bab3f7a143cf5042ecff7df9c8b73f8a376203cd534d1dc966/google_auth-2.56.3.tar.gz", hash = "sha256:40e229fc901f0a305b553050e5fce562d509bee0435be053abfa91582b51b90c", size = 367110, upload-time = "2026-08-06T06:24:01.36Z" }
 wheels = [
@@ -2323,9 +2323,9 @@ version = "2.3.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
-    { name = "python-dateutil", marker = "extra == 'group-40-contoso-data-product-databricks-airflow3-dbt' or extra == 'group-40-contoso-data-product-databricks-airflow3-engine'" },
-    { name = "pytz", marker = "extra == 'group-40-contoso-data-product-databricks-airflow3-dbt' or extra == 'group-40-contoso-data-product-databricks-airflow3-engine'" },
-    { name = "tzdata", marker = "extra == 'group-40-contoso-data-product-databricks-airflow3-dbt' or extra == 'group-40-contoso-data-product-databricks-airflow3-engine'" },
+    { name = "python-dateutil" },
+    { name = "pytz" },
+    { name = "tzdata" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/33/01/d40b85317f86cf08d853a4f495195c73815fdf205eef3993821720274518/pandas-2.3.3.tar.gz", hash = "sha256:e05e1af93b977f7eafa636d043f9f94c7ee3ac81af99c13508215942e64c993b", size = 4495223, upload-time = "2025-09-29T23:34:51.853Z" }
 wheels = [
@@ -2638,7 +2638,7 @@ name = "pyasn1-modules"
 version = "0.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pyasn1", marker = "extra == 'group-40-contoso-data-product-databricks-airflow3-dbt' or extra == 'group-40-contoso-data-product-databricks-airflow3-engine'" },
+    { name = "pyasn1" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e9/e6/78ebbb10a8c8e4b61a59249394a4a594c1a7af95593dc933a349c8d00964/pyasn1_modules-0.4.2.tar.gz", hash = "sha256:677091de870a80aae844b1ca6134f54652fa2c8c5a52aa396440ac3106e941e6", size = 307892, upload-time = "2025-03-28T02:41:22.17Z" }
 wheels = [
