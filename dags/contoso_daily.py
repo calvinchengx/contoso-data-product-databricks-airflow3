@@ -167,16 +167,14 @@ def contoso_daily():
                 if "already" not in text and "409" not in text:
                     print(f"{what}: {exc}")
 
-        state = landing._state()
-        state.update(
-            {
-                "workspace": WORKSPACE,
-                "warehouse": WAREHOUSE,
-                "warehouse_id": wh.id,
-                "http_path": f"/sql/1.0/endpoints/{wh.id}",
-            }
+        # `record` MERGES. The state file also carries the landing day, and
+        # replacing it wholesale is a bug the Jobs leaf already fixed once.
+        landing.record(
+            workspace=WORKSPACE,
+            warehouse=WAREHOUSE,
+            warehouse_id=wh.id,
+            http_path=f"/sql/1.0/endpoints/{wh.id}",
         )
-        landing._write_state(state)
         return {"warehouse_id": wh.id, "http_path": f"/sql/1.0/endpoints/{wh.id}"}
 
     @task
@@ -376,35 +374,82 @@ def contoso_daily():
     def publish(ctx: dict) -> dict:
         """Read gold at money's own grain and write the snapshot.
 
-        CAST IN THE ENGINE rather than rounding in Python: the transport reports
-        a decimal column as a double on this emulator
-        (databricks-emulator#46), and rounding after that has already lost the
-        digits it would be rounding.
+        CAST IN THE ENGINE rather than rounding in Python. Money columns in this
+        catalog READ as binary floats -- the emulator registers decimal columns
+        in Unity Catalog as `type_name: DOUBLE` while the Delta log, the Parquet
+        physical type and `DESCRIBE` all still say `decimal(19,4)`, and the
+        planner trusts UC (databricks-emulator#46). The cast recovers the value
+        because money is defined to four places and the error is eight orders of
+        magnitude below that. It does not repair the column and is not meant to.
+
+        THE SAME FIELDS THE JOBS CELL PUBLISHES, so `compare_products` can put
+        the two side by side. If they differ, the orchestrator is the only thing
+        left that could have made them differ, which is what this cell is for.
         """
+        from contoso_dbx_airflow.sql import query
         from contoso_dbx_airflow.target import CATALOG, T, WAREHOUSE
 
         t = T()
         w = t.workspace_client()
         wh = t.warehouse(WAREHOUSE)
+
+        money = "CAST(CAST(coalesce(sum({}),0) AS DECIMAL(19,4)) AS STRING)"
+        data = query(
+            w,
+            wh.id,
+            f"SELECT {money.format('revenue_usd')}, "
+            f"{money.format('cancelled_revenue_usd')}, "
+            f"coalesce(sum(sale_lines),0) FROM {CATALOG}.gold.fct_revenue_summary",
+        )
+        if not data:
+            # "COULD NOT READ" IS NOT "ZERO". Defaulting to 0 here would publish
+            # a snapshot claiming this runtime built nothing while nine dbt
+            # tasks had just gone green.
+            raise RuntimeError(
+                "gold built, but its aggregates came back with no rows -- "
+                "refusing to publish a snapshot of zeros."
+            )
+
         counts = {}
         for model in GOLD_MODELS:
-            stmt = w.statement_execution.execute_statement(
-                warehouse_id=wh.id,
-                statement=f"SELECT count(*) FROM {CATALOG}.gold.{model}",
-            )
-            rows = (stmt.result.data_array if stmt.result else None) or [[0]]
-            counts[model] = int(rows[0][0])
+            rows = query(w, wh.id, f"SELECT count(*) FROM {CATALOG}.gold.{model}")
+            counts[model] = int(rows[0][0]) if rows else 0
         empty = [m for m, n in counts.items() if n == 0]
         if empty:
             raise RuntimeError(
                 "gold models built but are empty, so a snapshot of them would "
                 f"record nothing as a result: {', '.join(empty)}"
             )
-        snapshot = {"runtime": "databricks-airflow3", "gold": counts}
-        pathlib.Path("product_snapshot.json").write_text(
-            json.dumps(snapshot, indent=2) + "\n", encoding="utf-8"
+
+        # THE CONTRACTS THIS RUN ACTUALLY RENDERED, read from the manifest the
+        # graph was built from -- not globbed off disk. A name on disk that no
+        # task executed is exactly the stale-evidence defect the Jobs leaf was
+        # fixed for.
+        nodes = json.loads(MANIFEST.read_text(encoding="utf-8"))["nodes"]
+        from contoso_product import gold_dir
+
+        singular = sorted(p.stem for p in (gold_dir() / "tests").glob("*.sql"))
+        contracts = sorted(
+            c
+            for c in singular
+            if any(
+                k.startswith("test.") and (k.endswith(f".{c}") or f".{c}." in k)
+                for k in nodes
+            )
         )
-        print(json.dumps(counts, indent=2))
+
+        snapshot = {
+            "revenue_usd": str(data[0][0]),
+            "cancelled_revenue_usd": str(data[0][1]),
+            "sale_lines": str(data[0][2]),
+            "contracts": contracts,
+            "runtime": "databricks-airflow3",
+            "catalog": CATALOG,
+            "gold": counts,
+        }
+        out = pathlib.Path(os.environ.get("CONTOSO_SNAPSHOT", "product_snapshot.json"))
+        out.write_text(json.dumps(snapshot, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(snapshot, indent=2))
         return snapshot
 
     registered >> env >> gold >> publish(ctx)

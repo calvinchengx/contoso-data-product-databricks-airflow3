@@ -2,7 +2,7 @@
 # developer runs on this repo alone.
 UV ?= uv
 
-.PHONY: help lock manifest test lint check
+.PHONY: help lock manifest prepare test lint check
 
 help:
 	@echo "manifest  build the dbt manifest cosmos renders the gold graph from"
@@ -29,5 +29,10 @@ test:
 lint:
 	$(UV) run --no-sync ruff check .
 	$(UV) run --no-sync ruff format --check .
+
+# WHAT THE PLATFORM CALLS. The platform asks whether this product declares a
+# `prepare` target and runs it before building the worker; it never learns that
+# preparing means a dbt manifest here.
+prepare: manifest
 
 check: manifest lint test

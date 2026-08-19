@@ -98,31 +98,49 @@ def test_the_manifest_matches_the_installed_product():
     assert stamp["contoso_data_product"] == version("contoso-data-product")
 
 
-def test_dbt_pins_agree_between_the_dag_and_the_project():
-    """The venv is built from a list, the tasks from a lockfile. Keep them equal."""
-    import tomllib
+def test_dbt_pins_agree_between_the_dag_and_the_manifest():
+    """The manifest and the gold tasks must be built by the SAME dbt.
 
+    dbt is not a dependency of this product -- it cannot be (see below), so no
+    lockfile holds these together. Two literal lists do, and this is what keeps
+    them equal: a manifest rendered by one dbt and executed by another is a
+    graph describing something the run will not do.
+    """
     import sys
 
     sys.path.insert(0, str(ROOT / "dags"))
+    sys.path.insert(0, str(ROOT / "scripts"))
     import contoso_daily
+    import manifest
 
-    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    group = project["dependency-groups"]["dbt"]
-    assert sorted(contoso_daily.DBT_REQUIREMENTS) == sorted(group), (
-        "the dbt virtualenv the gold tasks build no longer matches the `dbt` "
-        "dependency group -- the manifest and the run would use different dbts"
-    )
+    assert sorted(contoso_daily.DBT_REQUIREMENTS) == sorted(manifest.DBT_REQUIREMENTS)
 
 
-def test_the_engine_and_dbt_are_declared_incompatible():
-    """Not a style choice: uv proves them unsatisfiable together."""
+def test_dbt_is_not_a_dependency_of_this_product():
+    """Not an oversight, and not a style choice: it cannot be one.
+
+    `databricks-connect` 19.1 needs `databricks-sdk>=0.122`; `dbt-databricks`
+    1.12.4 needs `<0.118`. uv resolves dependency groups together with the base
+    dependencies, so declaring dbt anywhere in this file makes the whole project
+    unresolvable -- and `[tool.uv] conflicts` can only express group-against-
+    group, not group-against-base.
+
+    The engine, by contrast, MUST be a base dependency: the worker image
+    installs the project and no groups, and as a group it was simply absent at
+    run time -- the first task died with `workspace_client() needs
+    databricks-sdk` after everything else about the cell was right.
+    """
     import tomllib
 
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    conflicts = project["tool"]["uv"]["conflicts"]
-    groups = [{c.get("group") for c in pair} for pair in conflicts]
-    assert {"engine", "dbt"} in groups, (
-        "engine and dbt must stay declared as conflicting -- databricks-connect "
-        "19.1 needs databricks-sdk>=0.122 and dbt-databricks 1.12.4 needs <0.118"
+    declared = " ".join(project["project"]["dependencies"])
+    for group in project.get("dependency-groups", {}).values():
+        declared += " " + " ".join(group)
+    assert "dbt-databricks" not in declared, (
+        "dbt-databricks is declared as a dependency -- this project cannot "
+        "resolve with it and databricks-connect together"
+    )
+    assert "databricks-connect" in " ".join(project["project"]["dependencies"]), (
+        "the engine must be a BASE dependency -- the worker image installs the "
+        "project and no groups"
     )

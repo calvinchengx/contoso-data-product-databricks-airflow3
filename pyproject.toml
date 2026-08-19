@@ -45,6 +45,14 @@ dependencies = [
     # snapshot and not a change stream at all.
     "confluent-kafka>=2.5,<3",
     "psycopg[binary]>=3.2,<4",
+    # THE ENGINE, IN THE BASE DEPENDENCIES rather than a group. Every task the
+    # worker runs -- provision, ingest, bronze, silver, register, publish --
+    # imports one of these, and the platform's worker image installs the PROJECT
+    # (`uv pip install /opt/build`), which brings base dependencies and no
+    # groups. As a group these were simply absent at run time: `workspace_client()
+    # needs databricks-sdk`, on the first task, after everything else was right.
+    "databricks-sdk==0.129.0",
+    "databricks-connect==19.1",
     # Renders the gold project as one Airflow task per model, with dbt's own
     # graph as the dependencies -- which is what puts each contract in the UI as
     # its own task rather than a verdict read back out of run_results.json.
@@ -52,15 +60,19 @@ dependencies = [
 ]
 
 [dependency-groups]
-engine = [
-    "databricks-sdk==0.129.0",
-    "databricks-connect==19.1",
-]
-# dbt-databricks 1.12.4 pins databricks-sdk<0.118. Do not include-group engine.
-dbt = [
-    "dbt-core>=1.9,<2",
-    "dbt-databricks==1.12.4",
-]
+# NO dbt GROUP, deliberately. dbt-databricks 1.12.4 pins databricks-sdk<0.118
+# while databricks-connect 19.1 -- a base dependency, because every task needs
+# it -- requires >=0.122. uv resolves groups TOGETHER WITH the base
+# dependencies, so a `dbt` group here makes the whole project unresolvable; and
+# `[tool.uv] conflicts` cannot express "conflicts with the base", only group
+# against group.
+#
+# That is the honest shape anyway: dbt is not a dependency of this product. It
+# is provisioned at run time into its own virtualenv -- by cosmos for the gold
+# tasks, and by `uv run --isolated --with` for the manifest. The two lists that
+# name it are `dags/contoso_daily.py` and `scripts/manifest.py`, and a test
+# holds them equal so the manifest cannot be rendered by a different dbt than
+# the one that runs.
 dev = ["pytest>=9.0.3,<10", "ruff>=0.14,<0.15"]
 
 [build-system]
@@ -75,15 +87,6 @@ line-length = 88
 target-version = "py312"
 
 [tool.uv]
-# DECLARED, not discovered at install time. uv refuses to resolve these two
-# groups together, and saying so here makes the refusal a statement about the
-# product rather than an error someone hits.
-conflicts = [
-    [
-        { group = "engine" },
-        { group = "dbt" },
-    ],
-]
 # FORCE THE PATCHED sqlparse PAST dbt-core's PIN -- the same override the Fabric
 # Airflow leaf carries, for the same reason: four advisories land on
 # sqlparse <= 0.5.5, fixed only in 0.6.0, which dbt-core forbids. Without it uv

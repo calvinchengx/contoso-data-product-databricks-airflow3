@@ -27,7 +27,21 @@ WAREHOUSE = "contoso_warehouse"
 CATALOG = "contoso"
 LANDING_NAME = "landing"
 TABLES_NAME = "tables"
-ROOT = Path(__file__).resolve().parent.parent.parent
+# WHERE THE PRODUCT'S OWN FILES ARE, asked of the environment rather than
+# derived from this file's location.
+#
+# `Path(__file__).parent.parent.parent` is what the Jobs leaf uses and it is
+# correct THERE, because its steps run from the repository. Here the package is
+# INSTALLED: in the worker image that expression resolved to
+# `/home/airflow/.local/lib/python3.13`, and the token lookup went looking for
+# `.../python3.13/data/admin.pat`. It failed loudly, which is the only reason
+# this was a five-minute diagnosis rather than a silent read of the wrong file.
+#
+# The platform mounts the product and knows where; the product asks. The
+# fallback keeps this working from a checkout, where the derivation is right.
+ROOT = Path(
+    os.environ.get("CONTOSO_PRODUCT_DIR", Path(__file__).resolve().parent.parent.parent)
+)
 
 
 def T():
@@ -66,7 +80,8 @@ def _token() -> str:
     orchestrator would leave two candidate explanations for any difference.
     Recorded as its own step rather than done quietly.
     """
-    pat = ROOT / "data" / "admin.pat"
+    # The platform names the file; it is the platform that put it there.
+    pat = Path(os.environ.get("DATABRICKS_TOKEN_FILE", ROOT / "data" / "admin.pat"))
     try:
         return pat.read_text(encoding="utf-8").strip()
     except OSError as exc:

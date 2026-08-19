@@ -10,11 +10,24 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import os
 from pathlib import Path
 
 from .target import host_delta
 
-STATE = Path("state.json")
+# WHERE THE RUN'S SHARED FACTS LIVE -- absolute here, relative in the Jobs leaf,
+# and this is the one line where the two copies diverge on purpose.
+#
+# `Path("state.json")` is correct for a job: one process, one working directory,
+# and the file is beside it. Under an orchestrator it is not. Tasks do not share
+# a working directory, so `provision` would write the warehouse id somewhere
+# `land` never looks, and `day()` -- which exists precisely so every vendor
+# lands in ONE date partition -- would decide a fresh day per task and quietly
+# scatter the run across partitions that bronze then reads as empty.
+#
+# So the platform names a path on the volume every task already shares. The
+# default keeps a checkout behaving exactly as the Jobs leaf does.
+STATE = Path(os.environ.get("CONTOSO_STATE", "state.json"))
 
 
 def _state() -> dict:

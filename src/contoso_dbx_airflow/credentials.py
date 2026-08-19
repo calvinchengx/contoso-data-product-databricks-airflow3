@@ -68,7 +68,7 @@ def published(secret: str) -> str:
 
 def resolve(secret: str) -> str:
     """The value, from the environment first and the vendor second."""
-    from target import T
+    from .target import T
 
     value = os.environ.get(env_name(secret))
     if value:
