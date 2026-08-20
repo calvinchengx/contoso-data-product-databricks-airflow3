@@ -2,7 +2,7 @@
 # developer runs on this repo alone.
 UV ?= uv
 
-.PHONY: help lock manifest prepare test lint check
+.PHONY: help lock manifest prepare test lint check show-product
 
 help:
 	@echo "manifest  build the dbt manifest cosmos renders the gold graph from"
@@ -21,6 +21,9 @@ lock:
 manifest:
 	$(UV) sync --quiet
 	$(UV) run --no-sync python scripts/manifest.py
+
+show-product: ## Stage the core product's SQL locally and list what it contains
+	@uv run python -m contoso_product.show --into product
 
 test:
 	$(UV) sync --quiet --group dev
