@@ -144,3 +144,47 @@ def test_dbt_is_not_a_dependency_of_this_product():
         "the engine must be a BASE dependency -- the worker image installs the "
         "project and no groups"
     )
+
+
+def test_no_dbt_task_emits_an_asset_cosmos_invented(monkeypatch):
+    """Cosmos must emit no assets; this DAG declares its own.
+
+    G37, MET IN THE FABRIC AIRFLOW CELL AND FIXED HERE BEFORE IT WAS MET.
+    With emission left on -- the default -- cosmos assigns each model task an
+    outlet at RUN TIME, and there it assigned three concurrent gold tasks the
+    SAME one (`dbo/fct_orders`, claimed six times in one run's log). They raced
+    to create one AssetModel row; one won, and the API server answered the
+    others with "Error updating Task Instance state. Setting the task to
+    failed." while their payload said SUCCESS. One run in two.
+
+    This cell had the same configuration and the same nine concurrent gold
+    models. It had simply never been observed failing -- two clean runs against
+    a one-in-two race is roughly a one-in-four coincidence, which is not
+    evidence. "Not yet seen" and "cannot happen" are different claims and this
+    file should only ever make the second one.
+
+    IT ASSERTS `emit_datasets`, NOT `outlets`. Cosmos's own parameter doc says
+    emission happens "during task execution", so a rendered task carries no
+    outlets either way and `assert not task.outlets` passes identically with
+    emission on and off -- the mistake the first version of the Fabric leaf's
+    guard made, where it appeared to work only because emission-on crashed the
+    render against a missing metadata table.
+    """
+    pytest.importorskip("airflow.sdk")
+    pytest.importorskip("cosmos")
+    # Hermetic: cosmos caches its rendered graph in an Airflow Variable, which
+    # needs a metadata database. Rendering still happens; only the cache is off.
+    monkeypatch.setenv("AIRFLOW__COSMOS__ENABLE_CACHE", "False")
+    import sys
+
+    sys.path.insert(0, str(ROOT / "dags"))
+    import contoso_daily
+
+    dag = contoso_daily.contoso_daily()
+    dbt_tasks = [t for t in dag.tasks if t.task_id.startswith("gold.")]
+    assert dbt_tasks, "no dbt tasks rendered -- the scan proved nothing"
+    emitting = {t.task_id for t in dbt_tasks if getattr(t, "emit_datasets", True)}
+    assert not emitting, (
+        f"cosmos will emit assets for these tasks at run time; the G37 race is "
+        f"live for them: {sorted(emitting)}"
+    )

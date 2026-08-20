@@ -366,6 +366,24 @@ def contoso_daily():
             # parser when dbt is absent, which it always is here.
             load_method=LoadMode.DBT_MANIFEST,
             test_behavior=TestBehavior.AFTER_ALL,
+            # NO COSMOS ASSETS. Left on, cosmos assigns each model task an
+            # outlet of its own devising at RUN TIME -- and in the Fabric
+            # Airflow cell it assigned three concurrent gold tasks the SAME
+            # one, `dbo/fct_orders`. They raced to create one AssetModel row;
+            # one won, and the API server answered the others with "Error
+            # updating Task Instance state. Setting the task to failed." WHILE
+            # THEIR PAYLOAD SAID SUCCESS. A model that built correctly, and
+            # said so, recorded as failed. One run in two.
+            #
+            # THIS CELL WAS NEVER SHOWN SAFE, only unobserved. It had emission
+            # on -- the default -- and its nine gold models run concurrently,
+            # exactly the shape that failed there. Two clean runs are about a
+            # one-in-four coincidence against a one-in-two race, which is not
+            # evidence of anything. Turning it off costs this product nothing:
+            # it declares its own target-neutral assets (`contoso://...`) and
+            # emits them from `publish`, the task that COUNTS the rows rather
+            # than the one that wrote them.
+            emit_datasets=False,
         ),
         default_args={"retries": 0},
     )
