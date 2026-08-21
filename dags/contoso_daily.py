@@ -313,9 +313,19 @@ def contoso_daily():
             "DATABRICKS_HTTP_PATH": wh.http_path,
             "DATABRICKS_CONNECTION_URI": f"{host}{wh.http_path}",
             "DATABRICKS_CATALOG": CATALOG,
-            "CONTOSO_SILVER_DATABASE": CATALOG,
-            "CONTOSO_SILVER_SCHEMA": "silver",
-            "LAKEHOUSE_ID": CATALOG,
+            # DBT_-PREFIXED SINCE CORE v0.6.0, and the reason is not Databricks'.
+            # Snowflake's dbt Projects refuse any env var key that is not
+            # UPPERCASE and DBT_-prefixed, so the names this used to set could
+            # not be supplied there at all -- gold ran on every engine in this
+            # family except the one named for running dbt as a first-class
+            # object. The rename made the product portable.
+            #
+            # LAKEHOUSE_ID IS GONE, not renamed: it was read only because gold's
+            # default was `env_var('CONTOSO_SILVER_DATABASE',
+            # env_var('LAKEHOUSE_ID'))` and Jinja evaluates a default EAGERLY,
+            # so a Fabric-only name was mandatory here. Core stopped nesting it.
+            "DBT_SILVER_DATABASE": CATALOG,
+            "DBT_SILVER_SCHEMA": "silver",
             "DBT_SEND_ANONYMOUS_USAGE_STATS": "false",
         }
 

@@ -64,24 +64,25 @@ def main() -> int:
         "--target-path",
         str(TARGET),
     ]
-    # GOLD'S sources.yml DEMANDS THESE AT PARSE TIME, and not because the shared
-    # project is careless. It reads:
+    # GOLD'S sources.yml DEMANDS THESE AT PARSE TIME. It reads
+    # `env_var('DBT_SILVER_DATABASE')`, and `dbt parse` does not connect, so
+    # these values only have to EXIST. The real ones reach the gold tasks
+    # through the run environment.
     #
-    #     database: "{{ env_var('CONTOSO_SILVER_DATABASE', env_var('LAKEHOUSE_ID')) }}"
-    #
-    # The outer call has a fallback, but the fallback is ITSELF an env_var with
-    # no default, and Jinja evaluates it eagerly -- so LAKEHOUSE_ID is required
-    # even when CONTOSO_SILVER_DATABASE is set.
-    #
-    # Satisfied here rather than fixed there: contoso-data-product is consumed
-    # by four platforms, and changing a shared project to suit one consumer's
-    # renderer is the wrong direction. These values name the catalog this
-    # product uses; `dbt parse` does not connect, and the real values reach the
-    # gold tasks through the run environment.
+    # IT WAS FIXED THERE AFTER ALL. This block used to also set LAKEHOUSE_ID,
+    # because gold's default was `env_var('CONTOSO_SILVER_DATABASE',
+    # env_var('LAKEHOUSE_ID'))` and Jinja evaluates a default EAGERLY -- so a
+    # Fabric-only name was required on Databricks even when the first was set.
+    # The comment here argued that changing a shared project to suit one
+    # consumer's renderer was the wrong direction, and that reasoning was sound
+    # but the premise was not: the nesting was a defect in the project, not a
+    # quirk of a renderer, and it cost the Snowflake Tasks cell months recorded
+    # as a "dialect gap" while gold had never run there. Core v0.6.0 stopped
+    # nesting it and moved the names, because Snowflake's dbt Projects refuse
+    # any key that is not UPPERCASE and DBT_-prefixed.
     env = os.environ.copy()
-    env.setdefault("CONTOSO_SILVER_DATABASE", "contoso")
-    env.setdefault("CONTOSO_SILVER_SCHEMA", "silver")
-    env.setdefault("LAKEHOUSE_ID", "contoso")
+    env.setdefault("DBT_SILVER_DATABASE", "contoso")
+    env.setdefault("DBT_SILVER_SCHEMA", "silver")
     print("==> " + " ".join(cmd), flush=True)
     # `dbt parse` resolves the profile, so the placeholders in profiles.yml are
     # exercised here too -- if one of them lost its default, this fails at build
