@@ -100,4 +100,4 @@ override-dependencies = ["sqlparse>=0.6.0"]
 # the worker image receives this product's directory and nothing else, so
 # `../contoso-data-product` is `Distribution not found` at build time.
 contoso-data-product = { url = "https://github.com/calvinchengx/contoso-data-product/releases/download/v0.6.0/contoso_data_product-0.6.0-py3-none-any.whl" }
-databricks-target = { url = "https://github.com/calvinchengx/databricks-emulator/releases/download/v0.2.7/databricks_target-0.1.0-py3-none-any.whl" }
+databricks-target = { url = "https://github.com/calvinchengx/databricks-emulator/releases/download/v0.2.9/databricks_target-0.1.0-py3-none-any.whl" }

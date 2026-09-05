@@ -702,7 +702,7 @@ requires-dist = [
     { name = "contoso-data-product", url = "https://github.com/calvinchengx/contoso-data-product/releases/download/v0.6.0/contoso_data_product-0.6.0-py3-none-any.whl" },
     { name = "databricks-connect", specifier = "==19.1" },
     { name = "databricks-sdk", specifier = "==0.129.0" },
-    { name = "databricks-target", url = "https://github.com/calvinchengx/databricks-emulator/releases/download/v0.2.7/databricks_target-0.1.0-py3-none-any.whl" },
+    { name = "databricks-target", url = "https://github.com/calvinchengx/databricks-emulator/releases/download/v0.2.9/databricks_target-0.1.0-py3-none-any.whl" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2,<4" },
     { name = "pyarrow", specifier = ">=18,<24" },
     { name = "requests", specifier = ">=2.32,<3" },
@@ -828,9 +828,9 @@ wheels = [
 [[package]]
 name = "databricks-target"
 version = "0.1.0"
-source = { url = "https://github.com/calvinchengx/databricks-emulator/releases/download/v0.2.7/databricks_target-0.1.0-py3-none-any.whl" }
+source = { url = "https://github.com/calvinchengx/databricks-emulator/releases/download/v0.2.9/databricks_target-0.1.0-py3-none-any.whl" }
 wheels = [
-    { url = "https://github.com/calvinchengx/databricks-emulator/releases/download/v0.2.7/databricks_target-0.1.0-py3-none-any.whl", hash = "sha256:3e152088212802ca750dd23b34cfef9aea78e306c4efb3a5bca461eae14bb5f6" },
+    { url = "https://github.com/calvinchengx/databricks-emulator/releases/download/v0.2.9/databricks_target-0.1.0-py3-none-any.whl", hash = "sha256:43877fef31b62879556555364116103d0207c496551b3d5e5acd368a01af612a" },
 ]
 
 [package.metadata]
