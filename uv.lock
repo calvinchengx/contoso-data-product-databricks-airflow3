@@ -663,10 +663,10 @@ wheels = [
 
 [[package]]
 name = "contoso-data-product"
-version = "0.6.1"
-source = { url = "https://github.com/calvinchengx/contoso-data-product/releases/download/v0.6.1/contoso_data_product-0.6.1-py3-none-any.whl" }
+version = "0.6.2"
+source = { url = "https://github.com/calvinchengx/contoso-data-product/releases/download/v0.6.2/contoso_data_product-0.6.2-py3-none-any.whl" }
 wheels = [
-    { url = "https://github.com/calvinchengx/contoso-data-product/releases/download/v0.6.1/contoso_data_product-0.6.1-py3-none-any.whl", hash = "sha256:4a4b34cf89458de4bb79f040749bda47cd5f87db49e6645ea913aa2056dd0b00" },
+    { url = "https://github.com/calvinchengx/contoso-data-product/releases/download/v0.6.2/contoso_data_product-0.6.2-py3-none-any.whl", hash = "sha256:acc7c6ea84911c2db439200781ada48900c0a3d8dcba665672fcee8b9fb2753f" },
 ]
 
 [package.metadata]
@@ -699,7 +699,7 @@ dev = [
 requires-dist = [
     { name = "astronomer-cosmos", specifier = ">=1.15,<2" },
     { name = "confluent-kafka", specifier = ">=2.5,<3" },
-    { name = "contoso-data-product", url = "https://github.com/calvinchengx/contoso-data-product/releases/download/v0.6.1/contoso_data_product-0.6.1-py3-none-any.whl" },
+    { name = "contoso-data-product", url = "https://github.com/calvinchengx/contoso-data-product/releases/download/v0.6.2/contoso_data_product-0.6.2-py3-none-any.whl" },
     { name = "databricks-connect", specifier = "==19.1" },
     { name = "databricks-sdk", specifier = "==0.129.0" },
     { name = "databricks-target", url = "https://github.com/calvinchengx/databricks-emulator/releases/download/v0.2.9/databricks_target-0.1.0-py3-none-any.whl" },
